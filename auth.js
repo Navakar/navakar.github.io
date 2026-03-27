@@ -64,13 +64,38 @@
     document.body.appendChild(btn);
   }
 
+  // Auto-logout after 30 seconds of inactivity
+  var INACTIVITY_TIMEOUT = 30 * 1000; // 30 seconds
+  var inactivityTimer;
+
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(function () {
+      clearSession();
+      window.location.replace(LOGIN_PAGE + '?expired=1');
+    }, INACTIVITY_TIMEOUT);
+  }
+
+  function startInactivityWatcher() {
+    if (isLoginPage()) return;
+    var events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll', 'click'];
+    events.forEach(function (evt) {
+      document.addEventListener(evt, resetInactivityTimer, true);
+    });
+    resetInactivityTimer(); // start the timer immediately
+  }
+
   // Run auth check immediately (before page content renders)
   checkAuth();
 
-  // Inject logout button once DOM is ready
+  // Inject logout button and start inactivity watcher once DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addLogoutButton);
+    document.addEventListener('DOMContentLoaded', function () {
+      addLogoutButton();
+      startInactivityWatcher();
+    });
   } else {
     addLogoutButton();
+    startInactivityWatcher();
   }
 })();
