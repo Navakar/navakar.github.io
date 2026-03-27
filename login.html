@@ -209,12 +209,21 @@
         }
       })();
 
-      // Hardcoded credentials
+      // Credentials — username is plain, password is SHA-256 hashed (not the real password)
       var VALID_USERNAME = "admin";
-      var VALID_PASSWORD = "admin@123";
+      var VALID_PASSWORD_HASH = "7676aaafb027c825bd9abab78b234070e702752f625b752e55e55b48e607e358";
 
       var LOGIN_KEY = "nk_loggedIn";
       var TIME_KEY = "nk_loginTime";
+
+      // Hash a string using SHA-256 via Web Crypto API
+      function hashPassword(password) {
+        var msgBuffer = new TextEncoder().encode(password);
+        return crypto.subtle.digest("SHA-256", msgBuffer).then(function (hashBuffer) {
+          var hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+        });
+      }
 
       // If already logged in and not expired, go straight to app
       (function () {
@@ -235,15 +244,17 @@
         var password = document.getElementById("password").value;
         var errorMsg = document.getElementById("errorMsg");
 
-        if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-          errorMsg.style.display = "none";
-          localStorage.setItem(LOGIN_KEY, "1");
-          localStorage.setItem(TIME_KEY, Date.now().toString());
-          window.location.replace("index.html");
-        } else {
-          errorMsg.style.display = "block";
-          document.getElementById("password").value = "";
-        }
+        hashPassword(password).then(function (hash) {
+          if (username === VALID_USERNAME && hash === VALID_PASSWORD_HASH) {
+            errorMsg.style.display = "none";
+            localStorage.setItem(LOGIN_KEY, "1");
+            localStorage.setItem(TIME_KEY, Date.now().toString());
+            window.location.replace("index.html");
+          } else {
+            errorMsg.style.display = "block";
+            document.getElementById("password").value = "";
+          }
+        });
       }
     </script>
   </body>
